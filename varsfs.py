@@ -1,5 +1,6 @@
 #import logging
 
+import os
 from errno import ENOENT, EPERM
 from stat import S_IFDIR, S_IFREG
 from time import time
@@ -23,12 +24,14 @@ class VarsFS(Operations):
 		self.mountpoint = mountpoint
 		self.files = {}
 		self.fd = 0
+		self.uid = os.getuid()
 		now = time()
 
 		root = FileNode()
 		root.name = '/'
 		root.attrs = dict(st_mode=(S_IFDIR | 0o755), st_ctime=now,
-							   st_mtime=now, st_atime=now, st_nlink=2)
+							   st_mtime=now, st_atime=now, st_nlink=2,
+                               st_uid=self.uid)
 		self.files[''] = root
 
 
@@ -44,7 +47,7 @@ class VarsFS(Operations):
 
 		f.attrs = dict(st_mode=(S_IFREG | mode), st_nlink=1,
 					   st_size=0, st_ctime=time(), st_mtime=time(),
-					   st_atime=time())
+					   st_atime=time(), st_uid=self.uid)
 		self.files[varname] = f
 
 
@@ -99,7 +102,7 @@ class VarsFS(Operations):
 		else:
 			import threading
 			def fn():
-				print "New thread"
+				#print "New thread"
 				fuse = FUSE(self, self.mountpoint, foreground=True, nothreads=True)
 			t = threading.Thread(target=fn)
 			t.setDaemon(True)
