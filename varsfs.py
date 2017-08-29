@@ -77,8 +77,8 @@ class VarsFS(Operations):
 	def readdir(self, path, fh):
 		return ['.', '..'] + [x for x in self.files if x != '']
 
-	def statfs(self, path):
-		return dict(f_bsize=512, f_blocks=4096, f_bavail=2048)
+	#def statfs(self, path):
+	#	return dict(f_bsize=512, f_blocks=4096, f_bavail=2048)
 
 	def write(self, path, data, offset, fh):
 		p = path[1:]
