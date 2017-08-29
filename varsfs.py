@@ -1,7 +1,8 @@
 #import logging
 
+import os
 from errno import ENOENT, EPERM
-from stat import S_IFDIR, S_IFLNK, S_IFREG
+from stat import S_IFDIR, S_IFREG
 from time import time
 
 from fuse import FUSE, FuseOSError, Operations, LoggingMixIn
@@ -93,7 +94,22 @@ class VarsFS(Operations):
 
 	def Run(self, foreground=True):
 		#logging.basicConfig(level=logging.DEBUG)
-		fuse = FUSE(self, self.mountpoint, foreground=foreground)
+
+		#try:
+	#		os.system('fusermount -u ' + self.mountpoint)
+	#	except: pass
+
+		if foreground:
+			fuse = FUSE(self, self.mountpoint, foreground=foreground, nothreads=True)
+		else:
+			import threading
+			def fn():
+				print "New thread"
+				fuse = FUSE(self, self.mountpoint, foreground=True, nothreads=True)
+			t = threading.Thread(target=fn)
+			t.setDaemon(True)
+			t.start()
+
 
 
 
