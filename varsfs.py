@@ -1,6 +1,5 @@
 #import logging
 
-import os
 from errno import ENOENT, EPERM
 from stat import S_IFDIR, S_IFREG
 from time import time
@@ -94,10 +93,6 @@ class VarsFS(Operations):
 
 	def Run(self, foreground=True):
 		#logging.basicConfig(level=logging.DEBUG)
-
-		#try:
-	#		os.system('fusermount -u ' + self.mountpoint)
-	#	except: pass
 
 		if foreground:
 			fuse = FUSE(self, self.mountpoint, foreground=foreground, nothreads=True)
