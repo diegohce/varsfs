@@ -15,7 +15,28 @@ class FileNode:
 		self.getter_fn = None
 		self.setter_fn = None
 		self.attrs = None
-	
+##
+#
+
+class Helpers:
+
+	started_at = 0
+
+	@staticmethod
+	def get_pid(varname):
+		return '%d' % os.getpid()
+	@staticmethod
+	def get_user(varname):
+		return os.environ['LOGNAME']
+	@staticmethod
+	def get_uptime(varname):
+		return '%f' % (time() - Helpers.started_at)
+
+	@staticmethod
+	def get_fdcount(varname):
+		pass #ls /proc/22976/fd | wc -l
+##
+#
 
 #class VarsFS(LoggingMixIn, Operations):
 class VarsFS(Operations):
@@ -27,12 +48,20 @@ class VarsFS(Operations):
 		self.uid = os.getuid()
 		now = time()
 
+		Helpers.started_at = time()
+
 		root = FileNode()
 		root.name = '/'
 		root.attrs = dict(st_mode=(S_IFDIR | 0o755), st_ctime=now,
 							   st_mtime=now, st_atime=now, st_nlink=2,
                                st_uid=self.uid)
 		self.files[''] = root
+
+
+	def __create_defaults(self):
+		self.Add('uptime', Helpers.get_uptime)
+		self.Add('user', Helpers.get_user)
+		self.Add('pid', Helpers.get_pid)
 
 
 	def Add(self, varname, getter_fn, setter_fn=None):
@@ -97,6 +126,8 @@ class VarsFS(Operations):
 	def Run(self, foreground=True):
 		#logging.basicConfig(level=logging.DEBUG)
 
+		self.__create_defaults()
+
 		if foreground:
 			fuse = FUSE(self, self.mountpoint, foreground=foreground, nothreads=True)
 		else:
@@ -107,19 +138,6 @@ class VarsFS(Operations):
 			t = threading.Thread(target=fn)
 			t.setDaemon(True)
 			t.start()
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
