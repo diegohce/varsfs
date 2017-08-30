@@ -1,6 +1,8 @@
 #import logging
 
 import os
+import resource
+import subprocess
 from errno import ENOENT, EPERM
 from stat import S_IFDIR, S_IFREG
 from time import time
@@ -15,6 +17,7 @@ class FileNode:
 		self.getter_fn = None
 		self.setter_fn = None
 		self.attrs = None
+		self.fd = None
 ##
 #
 
@@ -25,16 +28,25 @@ class Helpers:
 	@staticmethod
 	def get_pid(varname):
 		return '%d' % os.getpid()
+
 	@staticmethod
 	def get_user(varname):
 		return os.environ['LOGNAME']
+
 	@staticmethod
 	def get_uptime(varname):
 		return '%f' % (time() - Helpers.started_at)
 
 	@staticmethod
-	def get_fdcount(varname):
-		pass #ls /proc/22976/fd | wc -l
+	def get_no_file(varname):
+		soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+		return '%d\t%d' % (soft, hard)
+
+	@staticmethod
+	def get_fd_count(varname):
+		out = subprocess.check_output('ls /proc/self/fd |wc -l', shell=True)
+		return out
+
 ##
 #
 
@@ -44,7 +56,7 @@ class VarsFS(Operations):
 	def __init__(self, mountpoint):
 		self.mountpoint = mountpoint
 		self.files = {}
-		self.fd = 0
+		self.fd = 3
 		self.uid = os.getuid()
 		now = time()
 
@@ -62,6 +74,8 @@ class VarsFS(Operations):
 		self.Add('uptime', Helpers.get_uptime)
 		self.Add('user', Helpers.get_user)
 		self.Add('pid', Helpers.get_pid)
+		self.Add('file-limits', Helpers.get_no_file)
+		self.Add('fd-count', Helpers.get_fd_count)
 
 
 	def Add(self, varname, getter_fn, setter_fn=None):
@@ -90,8 +104,12 @@ class VarsFS(Operations):
 		return self.files[p].attrs
 
 	def open(self, path, flags):
-		self.fd += 1
-		return self.fd
+		p = path[1:]
+
+		if self.files[p].fd is None:
+			self.fd += 1
+			self.files[p].fd = self.fd
+		return self.files[p].fd
 
 	def read(self, path, size, offset, fh):
 		p = path[1:]
